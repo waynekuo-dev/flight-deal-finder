@@ -58,13 +58,34 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
 - **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
+## Tech stack
+
+This is a plain **Vite + React single-page app** (no SSR). Routing is handled client-side by **React Router**, and auth is **Supabase** (email + password). Styling is Tailwind CSS v4 with shadcn/ui components. `vite build` emits a fully static bundle to `dist/`.
+
+Routes: `/` (landing), `/auth` (combined sign-in / sign-up), `/sign-in`, `/sign-up`, and the protected `/app` dashboard (redirects to `/auth` when signed out).
+
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
-npm i
-npm run dev
+npm install
+npm run dev      # start the dev server
+npm run build    # produce the static SPA in dist/
+npm run preview  # serve the built dist/ locally
 ```
+
+### Environment variables
+
+The Supabase client reads these at build time (already present in `.env`; set the same values in your Vercel project settings):
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+## Deploying to Vercel
+
+The app is a static SPA. `vercel.json` sets the build command (`vite build`), output directory (`dist`), and a SPA rewrite so deep links such as `/app` resolve client-side instead of 404ing. Import the repo into Vercel (framework preset: Vite), add the `VITE_SUPABASE_*` environment variables, and deploy — no server, Nitro, or Cloudflare configuration is involved.

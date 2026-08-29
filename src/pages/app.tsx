@@ -1,25 +1,20 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { Plane, LogOut, Construction } from "lucide-react";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { AuthenticatedContext } from "@/components/require-auth";
 
-export const Route = createFileRoute("/_authenticated/app")({
-  head: () => ({
-    meta: [
-      { title: "Dashboard — Flight Price Notifier" },
-      { name: "description", content: "Your flight route tracking dashboard." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
-  component: AppPage,
-});
-
-function AppPage() {
-  const { user } = Route.useRouteContext();
+export default function AppPage() {
+  const { user } = useOutletContext<AuthenticatedContext>();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Dashboard — Flight Price Notifier";
+  }, []);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    navigate({ to: "/", replace: true });
+    navigate("/", { replace: true });
   }
 
   return (
@@ -44,20 +39,16 @@ function AppPage() {
 
       <main className="hero-glow flex flex-1 items-center justify-center px-4 py-16">
         <div className="w-full max-w-lg text-center">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Hi {user.email}
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Hi {user.email}</h1>
           <div className="glow-card mx-auto mt-10 rounded-2xl p-10">
             <span className="mx-auto mb-6 flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
               <Construction className="size-7" />
             </span>
             <p className="text-base leading-relaxed text-muted-foreground">
-              你的航線追蹤儀表板即將上線 ——
-              下一個里程碑會加上訂閱航線的功能。
+              你的航線追蹤儀表板即將上線 —— 下一個里程碑會加上訂閱航線的功能。
             </p>
             <p className="mt-3 text-sm text-muted-foreground/70">
-              Your dashboard is coming soon. Route-subscription will be added in
-              the next milestone.
+              Your dashboard is coming soon. Route-subscription will be added in the next milestone.
             </p>
           </div>
         </div>

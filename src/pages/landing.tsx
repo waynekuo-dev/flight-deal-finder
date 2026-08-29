@@ -1,28 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "react-router-dom";
 import { Plane, Radar, MailCheck, CalendarX2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Flight Price Notifier" },
-      {
-        name: "description",
-        content:
-          "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
-      },
-      { property: "og:title", content: "Flight Price Notifier" },
-      {
-        property: "og:description",
-        content:
-          "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: LandingPage,
-});
 
 const features = [
   {
@@ -45,8 +23,12 @@ const features = [
   },
 ];
 
-function LandingPage() {
+export default function LandingPage() {
   const revealRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.title = "Flight Price Notifier";
+  }, []);
 
   useEffect(() => {
     const root = revealRef.current;
@@ -136,12 +118,8 @@ function LandingPage() {
                 <f.icon className="size-6" />
               </span>
               <h2 className="text-lg font-semibold tracking-tight">{f.title}</h2>
-              <p className="mt-1 text-sm font-medium text-primary">
-                {f.subtitle}
-              </p>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
+              <p className="mt-1 text-sm font-medium text-primary">{f.subtitle}</p>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
             </article>
           ))}
         </div>
@@ -150,9 +128,7 @@ function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-center px-4 py-8 sm:px-6">
-          <p className="text-sm text-muted-foreground">
-            © 2026 Flight Price Notifier
-          </p>
+          <p className="text-sm text-muted-foreground">© 2026 Flight Price Notifier</p>
         </div>
       </footer>
     </div>

@@ -1,35 +1,21 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { Plane, Loader2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "Sign in — Flight Price Notifier" },
-      {
-        name: "description",
-        content: "Sign in or create an account to start tracking flight prices from Taipei.",
-      },
-      { property: "og:title", content: "Sign in — Flight Price Notifier" },
-      {
-        property: "og:description",
-        content: "Sign in or create an account to start tracking flight prices from Taipei.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: AuthPage,
-});
+type AuthMode = "signin" | "signup";
 
-function AuthPage() {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+export default function AuthPage({ initialMode = "signin" }: { initialMode?: AuthMode }) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Sign in — Flight Price Notifier";
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -47,7 +33,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/app" });
+      navigate("/app");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -74,9 +60,7 @@ function AuthPage() {
             {mode === "signin" ? "Sign in / 登入" : "Sign up / 註冊"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mode === "signin"
-              ? "登入以查看你的航線追蹤儀表板。"
-              : "建立帳號，開始追蹤機票價格。"}
+            {mode === "signin" ? "登入以查看你的航線追蹤儀表板。" : "建立帳號，開始追蹤機票價格。"}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
