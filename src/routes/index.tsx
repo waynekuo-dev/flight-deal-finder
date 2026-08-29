@@ -5,13 +5,13 @@ import { useEffect, useRef } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Flight Price Notifier — 機票降價通知" },
+      { title: "Flight Price Notifier" },
       {
         name: "description",
         content:
           "設定航線與目標價，機票降價就通知你。Set a route and a target price — we email you when the fare drops.",
       },
-      { property: "og:title", content: "Flight Price Notifier — 機票降價通知" },
+      { property: "og:title", content: "Flight Price Notifier" },
       {
         property: "og:description",
         content:
