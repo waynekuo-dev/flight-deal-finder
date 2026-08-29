@@ -92,25 +92,27 @@ function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 pb-24 pt-24 text-center sm:px-6 sm:pb-32 sm:pt-32">
           <p className="fade-in-up mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
             <Plane className="size-3.5 text-primary" />
-            機票降價通知
+            From Taipei · 東京 · 首爾
           </p>
           <h1
             className="fade-in-up mx-auto max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl"
             style={{ transitionDelay: "80ms" }}
           >
-            設定航線與目標價，
-            <br />
-            <span className="bg-gradient-to-r from-primary to-[oklch(0.72_0.2_265)] bg-clip-text text-transparent">
-              機票降價就通知你
-            </span>
+            Flight Price Notifier
           </h1>
           <p
-            className="fade-in-up mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg"
+            className="fade-in-up mx-auto mt-4 max-w-2xl text-xl font-semibold leading-snug tracking-tight text-foreground sm:mt-5 sm:text-2xl"
             style={{ transitionDelay: "160ms" }}
+          >
+            設定航線與目標價，機票降價就通知你
+          </p>
+          <p
+            className="fade-in-up mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg"
+            style={{ transitionDelay: "240ms" }}
           >
             Set a route and a target price — we email you when the fare drops.
           </p>
-          <div className="fade-in-up mt-10" style={{ transitionDelay: "240ms" }}>
+          <div className="fade-in-up mt-10" style={{ transitionDelay: "320ms" }}>
             <Link
               to="/auth"
               className="inline-flex items-center justify-center rounded-xl bg-primary px-8 py-3.5 text-base font-semibold text-primary-foreground shadow-[0_8px_40px_-8px_var(--glow)] transition-all hover:bg-primary/90 hover:shadow-[0_8px_50px_-6px_var(--glow)]"
