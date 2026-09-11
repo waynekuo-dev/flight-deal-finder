@@ -18,7 +18,7 @@ Card 3: 「隨時取消 (Cancel anytime)」 -- 月訂閱制，不想用隨時停
  
 Footer with copyright 「2026 Flight Price Notifier」
 
-Authentication using Lovable built-in Supabase-style auth (use whatever auth backend Lovable provides by default -- Lovable Cloud is fine for this v1; we'll swap to a user-owned Supabase project in a later step):
+Authentication using a user-owned Supabase project (email + password auth against Supabase's default `auth.users`):
 
 Sign Up page with email + password
 
@@ -48,16 +48,6 @@ Tasteful subtle animations (fade-in on scroll is fine; don't overdo it)
 
 Out of scope for this v1: route-subscription form, target-price input, fare-display, payment, custom database tables (do NOT create a subscriptions of profiles table -- only use Supabase's default auth.users). Those come in later milestones. Stick to landing page + auth + placeholder dashboard.
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/3f039d6b-cfa9-4810-a4fe-96e746e51a24).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
 ## Tech stack
 
 This is a plain **Vite + React single-page app** (no SSR). Routing is handled client-side by **React Router**, and auth is **Supabase** (email + password). Styling is Tailwind CSS v4 with shadcn/ui components. `vite build` emits a fully static bundle to `dist/`.
@@ -79,11 +69,11 @@ npm run preview  # serve the built dist/ locally
 
 ### Environment variables
 
-The Supabase client reads these at build time (already present in `.env`; set the same values in your Vercel project settings):
+The Supabase client reads these at build time from `import.meta.env` (already present in `.env`; set the same values in your Vercel project settings). The publishable key (`sb_publishable_*`) is the browser-safe, RLS-gated key that replaces the older "anon key":
 
 ```
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_SUPABASE_URL=https://boewilnumliujswpljtw.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_gnrZKsSVwWiN4uzbRNovRw_TuXWXwuq
 ```
 
 ## Deploying to Vercel
