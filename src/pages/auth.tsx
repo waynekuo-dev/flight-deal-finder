@@ -97,7 +97,7 @@ export default function AuthPage({ initialMode = "signin" }: { initialMode?: Aut
             </div>
 
             {error && (
-              <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive-foreground">
+              <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive">
                 {error}
               </p>
             )}
