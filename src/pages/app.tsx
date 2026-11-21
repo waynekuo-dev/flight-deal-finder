@@ -13,6 +13,7 @@ const API_BASE = import.meta.env["VITE_FLIGHT_API"] as string | undefined;
 const PLANS = [
   { planName: "tokyo", route: "TPE-TYO", label: "台北 ✈ 東京", hint: 9325 },
   { planName: "seoul", route: "TPE-SEL", label: "台北 ✈ 首爾", hint: 5989 },
+  { planName: "london", route: "TPE-LON", label: "台北 ✈ 倫敦", hint: 23854 },
 ] as const;
 
 type Subscription = {
@@ -150,7 +151,7 @@ export default function AppPage() {
               <Loader2 className="size-6 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {PLANS.map((plan) => {
                 const sub = subs[plan.planName];
                 const subscribed = Boolean(sub);
