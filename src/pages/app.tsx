@@ -67,7 +67,7 @@ function submitLabel(status: SubStatus | null): string {
     case "expired":
       return "重新訂閱";
     default:
-      return "開始追蹤";
+      return "訂閱並付款";
   }
 }
 
@@ -206,7 +206,7 @@ export default function AppPage() {
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">選擇航線，設定目標價</h1>
             <p className="mt-3 text-sm text-muted-foreground">
-              嗨 {user.email}，挑一條航線並填入你的目標價（TWD）。月訂閱付款後，價格達標就寄信通知你。
+              嗨 {user.email}，選擇航線並設定目標價，月費 NT$300 訂閱後，達標時我們會寄 Email 通知你。
             </p>
           </div>
 
