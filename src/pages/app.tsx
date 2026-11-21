@@ -1,5 +1,5 @@
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
-import { Plane, LogOut, Loader2, Check, BellRing } from "lucide-react";
+import { Plane, LogOut, Loader2, Check, BellRing, Ban, CreditCard, Clock } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AuthenticatedContext } from "@/components/require-auth";
@@ -8,13 +8,18 @@ import type { AuthenticatedContext } from "@/components/require-auth";
 // from VITE_FLIGHT_API (.env locally, and picked up by the Vercel build).
 const API_BASE = import.meta.env["VITE_FLIGHT_API"] as string | undefined;
 
-// The two fixed plans, mirrored from the backend (flight-save-subscription).
+// The three fixed plans, mirrored from the backend (flight-save-subscription).
 // `hint` is the current-ish cheapest fare, shown so the user picks a sane budget.
 const PLANS = [
   { planName: "tokyo", route: "TPE-TYO", label: "台北 ✈ 東京", hint: 9325 },
   { planName: "seoul", route: "TPE-SEL", label: "台北 ✈ 首爾", hint: 5989 },
   { planName: "london", route: "TPE-LON", label: "台北 ✈ 倫敦", hint: 23854 },
 ] as const;
+
+// M2 — the subscription lifecycle statuses written by the ECPay callbacks.
+// Legacy M1 rows have no subscription_status; we treat those as pending_payment
+// so users self-migrate by paying.
+type SubStatus = "active" | "pending_payment" | "cancelled" | "expired";
 
 type Subscription = {
   email: string;
@@ -24,11 +29,47 @@ type Subscription = {
   destination: string;
   target_price: number;
   currency: string;
+  subscription_status?: SubStatus;
+  current_period_end?: string;
+  current_period_end_date?: string;
+  merchant_trade_no?: string;
   created_at?: string;
   updated_at?: string;
 };
 
 const twd = (n: number) => "NT$" + n.toLocaleString("en-US");
+
+// Legacy rows (no status) are shown as pending_payment.
+const effStatus = (sub?: Subscription): SubStatus | null =>
+  sub ? (sub.subscription_status ?? "pending_payment") : null;
+
+function statusBadge(status: SubStatus): { text: string; cls: string } {
+  switch (status) {
+    case "active":
+      return { text: "已訂閱（有效）", cls: "bg-primary/15 text-primary" };
+    case "pending_payment":
+      return { text: "未完成付款", cls: "bg-amber-500/15 text-amber-500" };
+    case "cancelled":
+      return { text: "已取消", cls: "bg-muted text-muted-foreground" };
+    case "expired":
+      return { text: "已結束", cls: "bg-muted text-muted-foreground" };
+  }
+}
+
+function submitLabel(status: SubStatus | null): string {
+  switch (status) {
+    case "active":
+      return "更新目標價";
+    case "pending_payment":
+      return "完成付款 / Pay";
+    case "cancelled":
+      return "更新目標價";
+    case "expired":
+      return "重新訂閱";
+    default:
+      return "開始追蹤";
+  }
+}
 
 export default function AppPage() {
   const { user } = useOutletContext<AuthenticatedContext>();
@@ -69,11 +110,15 @@ export default function AppPage() {
     void loadSubs();
   }, [loadSubs]);
 
+  // One flow for 開始追蹤 / 完成付款 / 重新訂閱 / 更新目標價: POST /subscribe and
+  // branch on the response Content-Type. The backend returns an auto-submit HTML
+  // form (→ ECPay cashier) for a new/unpaid/expired row, or JSON for an in-place
+  // target-price update on an already active/cancelled row (no re-payment).
   async function handleSubmit(e: FormEvent, planName: string) {
     e.preventDefault();
     setNotice(null);
     if (!API_BASE) return;
-    const raw = inputs[planName];
+    const raw = inputs[planName] ?? (subs[planName] ? String(subs[planName].target_price) : "");
     const target = Number(raw);
     if (!raw || !Number.isFinite(target) || target <= 0) {
       setNotice({ kind: "err", text: "請輸入有效的目標價（正整數，單位 TWD）。" });
@@ -86,14 +131,46 @@ export default function AppPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email, plan_name: planName, target_price: target }),
       });
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("text/html")) {
+        // Hand the browser to ECPay's cashier. The returned form auto-submits.
+        const html = await res.text();
+        document.open();
+        document.write(html);
+        document.close();
+        return;
+      }
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error ?? "subscribe failed");
       setInputs((prev) => ({ ...prev, [planName]: "" }));
       await loadSubs();
       const label = PLANS.find((p) => p.planName === planName)?.label ?? planName;
-      setNotice({ kind: "ok", text: `已開始追蹤 ${label}，目標價 ${twd(target)}。達標時會寄信通知你。` });
+      setNotice({ kind: "ok", text: `已更新 ${label} 的目標價為 ${twd(target)}。` });
     } catch {
-      setNotice({ kind: "err", text: "設定追蹤失敗，請稍後再試。" });
+      setNotice({ kind: "err", text: "操作失敗，請稍後再試。" });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleCancel(planName: string) {
+    setNotice(null);
+    if (!API_BASE) return;
+    const sub = subs[planName];
+    if (!sub) return;
+    setBusy(planName);
+    try {
+      const res = await fetch(`${API_BASE}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, route: sub.route }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error ?? "cancel failed");
+      await loadSubs();
+      setNotice({ kind: "ok", text: "已取消訂閱，本期結束前仍會收到通知。" });
+    } catch {
+      setNotice({ kind: "err", text: "取消失敗，請稍後再試。" });
     } finally {
       setBusy(null);
     }
@@ -129,7 +206,7 @@ export default function AppPage() {
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">選擇航線，設定目標價</h1>
             <p className="mt-3 text-sm text-muted-foreground">
-              嗨 {user.email}，挑一條航線並填入你的目標價（TWD）。我們每 30 分鐘檢查一次，價格達標就寄信通知你。
+              嗨 {user.email}，挑一條航線並填入你的目標價（TWD）。月訂閱付款後，價格達標就寄信通知你。
             </p>
           </div>
 
@@ -154,30 +231,48 @@ export default function AppPage() {
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {PLANS.map((plan) => {
                 const sub = subs[plan.planName];
-                const subscribed = Boolean(sub);
-                const value =
-                  inputs[plan.planName] ?? (sub ? String(sub.target_price) : "");
+                const status = effStatus(sub);
+                const badge = status ? statusBadge(status) : null;
+                const value = inputs[plan.planName] ?? (sub ? String(sub.target_price) : "");
+                const isBusy = busy === plan.planName;
                 return (
                   <form
                     key={plan.planName}
                     onSubmit={(e) => handleSubmit(e, plan.planName)}
                     className="glow-card rounded-2xl p-6 text-left"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <h2 className="text-xl font-semibold tracking-tight">{plan.label}</h2>
-                      {subscribed && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-medium text-primary">
-                          <Check className="size-3" />
-                          已訂閱
+                      {badge && (
+                        <span
+                          className={
+                            "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium " +
+                            badge.cls
+                          }
+                        >
+                          {status === "active" ? (
+                            <Check className="size-3" />
+                          ) : status === "pending_payment" ? (
+                            <CreditCard className="size-3" />
+                          ) : (
+                            <Clock className="size-3" />
+                          )}
+                          {badge.text}
                         </span>
                       )}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                       目前最低約 {twd(plan.hint)}
-                      {subscribed && (
+                      {sub && (
                         <>
                           {" · "}
-                          目標價 {twd(sub!.target_price)}
+                          目標價 {twd(sub.target_price)}
+                        </>
+                      )}
+                      {status === "cancelled" && sub?.current_period_end_date && (
+                        <>
+                          {" · "}
+                          有效至 {sub.current_period_end_date}（仍會通知到該日）
                         </>
                       )}
                     </p>
@@ -203,16 +298,30 @@ export default function AppPage() {
 
                     <button
                       type="submit"
-                      disabled={busy === plan.planName}
+                      disabled={isBusy}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                     >
-                      {busy === plan.planName ? (
+                      {isBusy ? (
                         <Loader2 className="size-4 animate-spin" />
+                      ) : status === "pending_payment" || status === "expired" ? (
+                        <CreditCard className="size-4" />
                       ) : (
                         <BellRing className="size-4" />
                       )}
-                      {subscribed ? "更新目標價" : "開始追蹤"}
+                      {submitLabel(status)}
                     </button>
+
+                    {status === "active" && (
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => handleCancel(plan.planName)}
+                        className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent disabled:opacity-60"
+                      >
+                        <Ban className="size-4" />
+                        取消訂閱
+                      </button>
+                    )}
                   </form>
                 );
               })}
